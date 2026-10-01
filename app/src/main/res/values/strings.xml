@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dimsplay</string>
+    <string name="subtitle">Go darker than your phone allows</string>
+    <string name="percent">%1$d%%</string>
+
+    <string name="dim_level">Dim level</string>
+    <string name="dimming">Dimming</string>
+    <string name="dimming_on">Overlay is running</string>
+    <string name="dimming_off">Overlay is off</string>
+    <string name="extra_dim">Extra dim</string>
+    <string name="extra_dim_caption">Also lower system brightness</string>
+
+    <string name="permission_title">Permission needed</string>
+    <string name="permission_body">Allow “Display over other apps” so Dimsplay can dim the screen.</string>
+    <string name="permission_button">Grant permission</string>
+
+    <string name="notification_channel">Dimming</string>
+    <string name="notification_channel_description">Shown while the screen is dimmed</string>
+    <string name="notification_text">Dimming at %1$d%%</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_decrease" formatted="false">−10%</string>
+    <string name="action_increase" formatted="false">+10%</string>
+
+    <string name="extra_dim_lost">Extra dim was turned off because Dimsplay can no longer change system settings.</string>
+    <string name="brightness_not_restored">Extra dim turned off. Couldn’t restore your original brightness.</string>
+</resources>
