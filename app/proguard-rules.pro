@@ -1,1 +1,1 @@
-# No custom rules needed: the app uses no reflection-based libraries.
+# No custom rules needed: the ads SDK ships its own consumer rules.

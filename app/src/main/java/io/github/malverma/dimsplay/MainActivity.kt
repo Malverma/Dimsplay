@@ -12,18 +12,30 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.net.toUri
+import io.github.malverma.dimsplay.ads.Ads
 import io.github.malverma.dimsplay.data.DimPrefs
 import io.github.malverma.dimsplay.data.DimState
 import io.github.malverma.dimsplay.service.BrightnessController
 import io.github.malverma.dimsplay.service.DimController
 import io.github.malverma.dimsplay.service.NotificationHelper
 import io.github.malverma.dimsplay.service.SettingsBrightness
+import io.github.malverma.dimsplay.ui.AdBanner
 import io.github.malverma.dimsplay.ui.DimColors
 import io.github.malverma.dimsplay.ui.DimScreen
 import io.github.malverma.dimsplay.ui.DimsplayTheme
@@ -49,22 +61,35 @@ class MainActivity : ComponentActivity() {
             val level by DimState.level.collectAsState()
             val running by DimState.running.collectAsState()
             val extraDim by DimState.extraDim.collectAsState()
+            val adsReady by Ads.ready.collectAsState()
             DimsplayTheme {
-                DimScreen(
-                    level = level,
-                    dimming = running,
-                    extraDim = extraDim,
-                    showPermissionBanner = !canDrawOverlays,
-                    onLevelChange = { value ->
-                        DimController.setLevel(value)
-                        // Moving the slider while dimming is off turns it on.
-                        if (!DimState.running.value && canDrawOverlays) startDimming()
-                    },
-                    onLevelChangeFinished = { DimController.saveLevel(this) },
-                    onDimmingChange = { on -> if (on) startDimming() else DimController.stop(this) },
-                    onExtraDimChange = ::setExtraDim,
-                    onGrantPermission = ::requestOverlayPermission,
-                )
+                // The banner sits below the screen, so it takes the bottom inset instead of DimScreen.
+                Column(Modifier.fillMaxSize().background(DimColors.Bg)) {
+                    DimScreen(
+                        level = level,
+                        dimming = running,
+                        extraDim = extraDim,
+                        showPermissionBanner = !canDrawOverlays,
+                        onLevelChange = { value ->
+                            DimController.setLevel(value)
+                            // Moving the slider while dimming is off turns it on.
+                            if (!DimState.running.value && canDrawOverlays) startDimming()
+                        },
+                        onLevelChangeFinished = { DimController.saveLevel(this@MainActivity) },
+                        onDimmingChange = { on -> if (on) startDimming() else DimController.stop(this@MainActivity) },
+                        onExtraDimChange = ::setExtraDim,
+                        onGrantPermission = ::requestOverlayPermission,
+                        modifier = Modifier
+                            .weight(1f)
+                            .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)),
+                    )
+                    AdBanner(
+                        ready = adsReady,
+                        modifier = Modifier.windowInsetsPadding(
+                            WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
+                        ),
+                    )
+                }
             }
         }
     }
@@ -84,7 +109,7 @@ class MainActivity : ComponentActivity() {
 
         val canWriteSettings = Settings.System.canWrite(this)
         if (enableExtraDimWhenPermitted && canWriteSettings) {
-            DimController.setExtraDim(this, true)
+            enableExtraDim()
         } else if (DimState.extraDim.value && !canWriteSettings) {
             DimController.setExtraDim(this, false)
             Toast.makeText(this, R.string.extra_dim_lost, Toast.LENGTH_LONG).show()
@@ -114,9 +139,18 @@ class MainActivity : ComponentActivity() {
             // The switch stays off unless the permission is granted (checked in onResume).
             enableExtraDimWhenPermitted = true
             startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, "package:$packageName".toUri()))
+        } else if (enabled) {
+            enableExtraDim()
         } else {
-            DimController.setExtraDim(this, enabled)
+            DimController.setExtraDim(this, false)
         }
+    }
+
+    private fun enableExtraDim() {
+        DimController.setExtraDim(this, true)
+        // Extra dim only lowers brightness while dimming runs, so, like the slider, turning it on
+        // while dimming is off turns dimming on.
+        if (!DimState.running.value && canDrawOverlays) startDimming()
     }
 
     private fun requestOverlayPermission() {

@@ -14,7 +14,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
@@ -52,7 +51,6 @@ class DimScreenTest {
         setScreen()
 
         compose.onNodeWithTag(TAG_SLIDER)
-            .performScrollTo()
             .performSemanticsAction(SemanticsActions.SetProgress) { it(75f) }
 
         compose.onNodeWithTag(TAG_LEVEL_VALUE).assertTextEquals("75%")
@@ -63,7 +61,7 @@ class DimScreenTest {
     fun dimmingSwitchReflectsState() {
         setScreen()
 
-        compose.onNodeWithTag(TAG_DIMMING).performScrollTo().assertIsOff()
+        compose.onNodeWithTag(TAG_DIMMING).assertIsOff()
         compose.onNodeWithText("Overlay is off").assertExists()
 
         compose.onNodeWithTag(TAG_DIMMING).performClick().assertIsOn()
