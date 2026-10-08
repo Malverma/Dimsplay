@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Google's demo IDs, which always serve test ads. Replace both with the app's own AdMob IDs
+         before release. https://developers.google.com/admob/android/next-gen/test-ads -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_banner_unit_id" translatable="false">ca-app-pub-3940256099942544/9214589741</string>
+</resources>

@@ -18,7 +18,8 @@ stays on while the user switches to other apps, until they turn it off.
 - Dim the screen below the system's minimum brightness, for use at night or in dark rooms.
 - A single, obvious control: one slider plus an on/off toggle.
 - Keep the dim layer active over all apps until the user stops it.
-- Small APK (target < 3 MB), no network access, no ads, no analytics.
+- Small APK (target < 3.5 MB). Network access is used only to show a banner ad (§4.6).
+  Dimsplay itself collects no user data and has no analytics.
 
 ### 1.2 Non-goals (v1)
 
@@ -58,8 +59,15 @@ A single-activity screen containing:
 4. **Extra dim switch** — "Also lower system brightness" (see §4.2.1).
    Turning it on the first time asks for the "Modify system settings"
    permission. If the permission is refused, the switch goes back to off.
+   Turning it on while the main switch is off also turns dimming on, because
+   Extra dim only acts while dimming runs.
 5. **Permission banner** — shown only when the overlay permission is missing,
    with a "Grant permission" button that opens the system settings page.
+6. **Ad banner** — anchored to the bottom of the screen, below the controls
+   (§4.6). It takes no space until an ad has loaded.
+
+In portrait, everything fits on one screen without scrolling: the progress
+ring takes the height left over and shrinks on short screens.
 
 Rough layout:
 
@@ -129,7 +137,7 @@ services) with:
 | Target / Compile SDK | 35 |
 | Build | Gradle (Kotlin DSL), Android Gradle Plugin |
 | Output | Signed release `.apk` |
-| Dependencies | AndroidX core, Compose BOM, Activity Compose. No other third-party libraries. |
+| Dependencies | AndroidX core, Compose BOM, Activity Compose, AndroidX Fragment, Google Mobile Ads Next-Gen SDK (§4.6). No other third-party libraries. |
 
 ### 4.2 Dimming method
 
@@ -206,7 +214,11 @@ DimService (foreground service)
 | `POST_NOTIFICATIONS` | Show the controls notification (Android 13+) | Runtime prompt on first start; dimming still works if denied |
 | `WRITE_SETTINGS` | Extra dim (system brightness reduction) | Requested only when the user turns on Extra dim, via `Settings.ACTION_MANAGE_WRITE_SETTINGS` |
 
-No `INTERNET` permission.
+| `INTERNET`, `ACCESS_NETWORK_STATE` | Load the banner ad (§4.6) | Normal permissions, merged in from the ads SDK |
+| `com.google.android.gms.permission.AD_ID` | Ad serving by the ads SDK | Normal permission, merged in from the ads SDK |
+
+Network access is used only by the ads SDK. Dimsplay's own code makes no
+network requests.
 
 ### 4.5 Edge cases
 
@@ -219,6 +231,25 @@ No `INTERNET` permission.
 | `WRITE_SETTINGS` revoked while Extra dim is on | Overlay keeps working; Extra dim switches off and the original brightness cannot be restored, so show a short notice |
 | Slider dragged quickly | Update `alpha` on the existing view; never remove and re-add the overlay per frame |
 | Screenshots / screen recording | The overlay will appear in captures. Documented as a known limitation |
+| No internet connection | The app works fully; the banner is not shown and takes no space. Failed ad loads are retried with backoff (15 s, doubling up to 5 min) and the banner appears once a load succeeds |
+
+### 4.6 Ads
+
+- One anchored adaptive banner from the Google Mobile Ads Next-Gen SDK
+  (`com.google.android.libraries.ads.mobile.sdk`), shown at the bottom of the
+  main screen above the navigation bar. No other ad formats.
+- The SDK is initialized on a background thread at app start. The banner is
+  requested only after initialization completes.
+- Ads never block or delay dimming. Every app feature works offline.
+- **Data:** Dimsplay itself does not collect, store or send any user data.
+  The ads SDK does send device data, such as the advertising ID, IP address
+  and device information, to Google to serve ads. The Google Play data safety
+  form and a privacy policy must disclose this before a Play release. Serving
+  personalized ads to users in the EEA/UK also requires a consent prompt
+  (Google's UMP SDK).
+- Development uses Google's demo app ID and banner unit ID
+  (`res/values/admob.xml`), which only serve test ads. Replace them with
+  Dimsplay's own AdMob IDs before release.
 
 ---
 
@@ -226,7 +257,8 @@ No `INTERNET` permission.
 
 - **Responsiveness:** visible change within one frame (≈16 ms) of slider movement.
 - **Battery:** no polling or wake locks. Idle CPU use is about zero while dimming.
-- **Size:** release APK < 3 MB, with R8 minification and resource shrinking on.
+- **Size:** release APK < 3.5 MB, with R8 minification and resource shrinking on
+  (about 3 MB with the ads SDK).
 - **Accessibility:** the slider has a content description and announces its
   value. All controls are at least 48 dp touch targets.
 - **Theming:** follows system light/dark mode.
@@ -289,6 +321,10 @@ App label: **Dimsplay**. Launcher icon: default placeholder for now.
 - [ ] Stopping dimming restores the original brightness and auto-brightness mode exactly.
 - [ ] Force-stopping the app while Extra dim is active, then reopening it, restores the original brightness.
 - [ ] No crash when rotating, when revoking the permission while dimming is on, or when the notification permission is denied.
+- [ ] Turning on Extra dim while dimming is off turns dimming on and lowers the system brightness.
+- [ ] In portrait, all controls are visible without scrolling, with and without the permission banner.
+- [ ] With internet, a banner ad appears at the bottom of the screen.
+- [ ] With no internet, the app works fully and no empty space is shown where the ad would be. Turning the connection back on shows the banner without restarting the app.
 
 ### 8.2 Test matrix
 

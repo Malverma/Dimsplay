@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -49,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import io.github.malverma.dimsplay.R
 import io.github.malverma.dimsplay.data.MAX_LEVEL
 import io.github.malverma.dimsplay.data.MIN_LEVEL
@@ -57,6 +60,8 @@ import kotlin.math.roundToInt
 private val RingDiameter = 220.dp
 private val RingStroke = 12.dp
 private val ThumbSize = 28.dp
+private val MinRingGap = 16.dp
+private const val MinRingScale = 0.5f
 
 @Composable
 fun DimScreen(
@@ -108,10 +113,10 @@ fun DimScreen(
                 }
             }
         } else {
+            // Portrait never scrolls: the ring takes the height the rest leaves and shrinks to fit.
             Column(
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
                     .padding(start = 24.dp, end = 24.dp, top = 32.dp, bottom = 24.dp),
             ) {
                 Header()
@@ -119,9 +124,7 @@ fun DimScreen(
                     Spacer(Modifier.height(23.dp))
                     PermissionBanner(onGrantPermission)
                 }
-                Spacer(Modifier.height(85.dp))
-                DimRing(level, Modifier.align(Alignment.CenterHorizontally))
-                Spacer(Modifier.height(74.dp))
+                FittedRing(level, Modifier.weight(1f).fillMaxWidth())
                 controls()
             }
         }
@@ -186,6 +189,28 @@ private fun PermissionBanner(onGrantPermission: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Text(stringResource(R.string.permission_button), style = DimType.Button)
+        }
+    }
+}
+
+/** The ring centered in the space it is given, scaled down (never up) when that space is short. */
+@Composable
+private fun FittedRing(level: Int, modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val full = RingDiameter + RingStroke
+        val available = min(maxWidth, maxHeight - MinRingGap * 2)
+        val scale = (available / full).coerceIn(MinRingScale, 1f)
+        // Laid out at full size and drawn scaled, so the ring's text shrinks with it.
+        Box(Modifier.size(full * scale), contentAlignment = Alignment.Center) {
+            DimRing(
+                level,
+                Modifier
+                    .requiredSize(full)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                    },
+            )
         }
     }
 }
